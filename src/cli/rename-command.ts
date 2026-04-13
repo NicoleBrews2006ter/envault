@@ -1,6 +1,13 @@
 import { Command } from 'commander';
 import { renameEnvironment } from '../commands/rename';
 
+/**
+ * Registers the `rename` subcommand onto the given Commander program.
+ *
+ * Usage: envault rename <old-name> <new-name> [options]
+ *
+ * @param program - The root Commander instance to attach the command to.
+ */
 export function registerRenameCommand(program: Command): void {
   program
     .command('rename <old-name> <new-name>')
