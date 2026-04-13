@@ -10,6 +10,17 @@ export interface MergeResult {
   outputEnvironment: string;
 }
 
+/**
+ * Merges environment variables from a source environment into a target environment.
+ *
+ * @param sourceEnv - The name of the source environment to merge from.
+ * @param targetEnv - The name of the target environment to merge into.
+ * @param projectDir - The project directory (defaults to current working directory).
+ * @param overwrite - If true, source values overwrite conflicting target values.
+ *                    If false, conflicting keys are reported and skipped.
+ * @returns A MergeResult containing the count of merged keys, any conflicting keys,
+ *          and the name of the output environment.
+ */
 export async function mergeEnvironments(
   sourceEnv: string,
   targetEnv: string,
@@ -23,6 +34,10 @@ export async function mergeEnvironments(
   }
   if (!config.environments[targetEnv]) {
     throw new Error(`Target environment "${targetEnv}" does not exist`);
+  }
+
+  if (sourceEnv === targetEnv) {
+    throw new Error(`Source and target environments must be different`);
   }
 
   const keys = await readKeys();
