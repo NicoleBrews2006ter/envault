@@ -15,6 +15,16 @@ export interface UnlockResult {
   outputPath?: string;
 }
 
+/**
+ * Resolves the output .env file path for a given environment.
+ * - 'default' environment maps to `.env`
+ * - named environments map to `.env.<environment>`
+ */
+function getOutputPath(projectDir: string, environment: string): string {
+  const filename = environment === 'default' ? '.env' : `.env.${environment}`;
+  return path.join(projectDir, filename);
+}
+
 export async function unlockEnv(options: UnlockOptions = {}): Promise<UnlockResult> {
   const projectDir = options.projectDir ?? process.cwd();
   const environment = options.environment ?? 'default';
@@ -45,7 +55,7 @@ export async function unlockEnv(options: UnlockOptions = {}): Promise<UnlockResu
     };
   }
 
-  const outputPath = path.join(projectDir, environment === 'default' ? '.env' : `.env.${environment}`);
+  const outputPath = getOutputPath(projectDir, environment);
 
   try {
     await decryptEnvFile(encryptedPath, outputPath, projectKey);
