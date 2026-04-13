@@ -11,6 +11,26 @@ function makeTempDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "envault-lock-test-"));
 }
 
+/**
+ * Sets up a temp directory with a valid config and keyfile for the given env name.
+ * Optionally writes a .env file with the provided content.
+ */
+function setupEnvProject(
+  tmpDir: string,
+  envContent?: string
+): { passphrase: string; envPath: string } {
+  const config = createDefaultConfig("test-project");
+  config.envFiles = { default: ".env" };
+  writeConfig(tmpDir, config);
+  const passphrase = generatePassphrase();
+  writeKeys({ [config.projectId]: passphrase });
+  const envPath = path.join(tmpDir, ".env");
+  if (envContent !== undefined) {
+    fs.writeFileSync(envPath, envContent);
+  }
+  return { passphrase, envPath };
+}
+
 describe("lockEnv", () => {
   let tmpDir: string;
 
@@ -37,23 +57,14 @@ describe("lockEnv", () => {
   });
 
   it("returns error if .env file is missing", async () => {
-    const config = createDefaultConfig("test-project");
-    config.envFiles = { default: ".env" };
-    writeConfig(tmpDir, config);
-    const passphrase = generatePassphrase();
-    writeKeys({ [config.projectId]: passphrase });
+    setupEnvProject(tmpDir);
     const result = await lockEnv(tmpDir, "default");
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/not found/);
   });
 
   it("encrypts the env file successfully", async () => {
-    const config = createDefaultConfig("test-project");
-    config.envFiles = { default: ".env" };
-    writeConfig(tmpDir, config);
-    const passphrase = generatePassphrase();
-    writeKeys({ [config.projectId]: passphrase });
-    fs.writeFileSync(path.join(tmpDir, ".env"), "SECRET=hello\nDB=postgres");
+    setupEnvProject(tmpDir, "SECRET=hello\nDB=postgres");
     const result = await lockEnv(tmpDir, "default");
     expect(result.success).toBe(true);
     expect(result.encryptedPath).toBeDefined();
