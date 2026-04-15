@@ -26,6 +26,8 @@ import { registerCompareCommand } from "./compare-command";
 import { registerRestoreCommand } from "./restore-command";
 import { registerLintCommand } from "./lint-command";
 import { registerWatchCommand } from "./watch-command";
+import { registerPackCommand } from "./pack-command";
+import { registerTemplateCommand } from "./template-command";
 
 const program = new Command();
 
@@ -61,5 +63,7 @@ registerCompareCommand(program);
 registerRestoreCommand(program);
 registerLintCommand(program);
 registerWatchCommand(program);
+registerPackCommand(program);
+registerTemplateCommand(program);
 
 program.parse(process.argv);
