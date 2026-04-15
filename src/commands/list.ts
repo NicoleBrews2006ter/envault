@@ -15,6 +15,14 @@ export interface EnvironmentInfo {
   encryptedPath: string;
 }
 
+/**
+ * Lists all environments configured for the project, along with their
+ * lock status and whether the current user has a decryption key for each.
+ *
+ * @param projectDir - Absolute path to the project root directory.
+ * @returns An object containing metadata for each configured environment.
+ * @throws If no envault config exists in the given directory.
+ */
 export async function listEnvironments(projectDir: string): Promise<ListResult> {
   if (!configExists(projectDir)) {
     throw new Error(
