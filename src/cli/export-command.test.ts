@@ -62,4 +62,19 @@ describe('registerExportCommand', () => {
     expect(errorSpy).toHaveBeenCalledWith('❌ Export failed: No key found');
     expect(exitSpy).toHaveBeenCalledWith(1);
   });
+
+  it('logs a generic error message when the thrown value is not an Error instance', async () => {
+    vi.spyOn(exportModule, 'exportEnv').mockRejectedValue('unexpected string error');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit');
+    });
+
+    const parser = registerExportCommand(yargs()).help(false);
+    await expect(parser.parseAsync(['export', 'development'])).rejects.toThrow(
+      'process.exit'
+    );
+
+    expect(errorSpy).toHaveBeenCalledWith('❌ Export failed: Unknown error');
+  });
 });
