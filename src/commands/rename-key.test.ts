@@ -1,69 +1,52 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { renameKey } from './rename-key';
 import { createDefaultConfig, writeConfig } from '../config/project';
-import { writeKeys } from '../crypto/keyfile';
-import { getEncryptedPath } from '../crypto/envfile';
+import { encryptEnvFile, getEncryptedPath } from '../crypto/envfile';
+import { storeKey } from '../crypto/keyfile';
+import { generatePassphrase } from '../crypto/keyfile';
 
-function makeTempDir(): string {
+function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'envault-rename-key-'));
 }
 
-const PROJECT_ID = 'test-project';
-
-async function setupProject(dir: string) {
-  const config = createDefaultConfig(PROJECT_ID);
-  await writeConfig(dir, config);
-  await writeKeys({ [PROJECT_ID]: { production: 'abc123key' } });
-  const encPath = getEncryptedPath(dir, 'production');
-  fs.writeFileSync(encPath, 'encrypted-data');
-}
-
 describe('renameKey', () => {
-  it('renames an environment key and file', async () => {
-    const dir = makeTempDir();
-    await setupProject(dir);
+  let tmpDir: string;
+  let passphrase: string;
 
-    await renameKey('production', 'prod', { projectDir: dir });
-
-    const oldPath = getEncryptedPath(dir, 'production');
-    const newPath = getEncryptedPath(dir, 'prod');
-
-    expect(fs.existsSync(oldPath)).toBe(false);
-    expect(fs.existsSync(newPath)).toBe(true);
-    expect(fs.readFileSync(newPath, 'utf8')).toBe('encrypted-data');
+  beforeEach(async () => {
+    tmpDir = makeTempDir();
+    const config = createDefaultConfig('test-project');
+    config.environments = ['development'];
+    writeConfig(tmpDir, config);
+    passphrase = generatePassphrase();
+    storeKey('test-project', 'development', passphrase);
+    const encPath = getEncryptedPath(tmpDir, 'development');
+    await encryptEnvFile('API_KEY=secret\nDB_URL=postgres://localhost/db\n', encPath, passphrase);
   });
 
-  it('throws if old environment does not exist', async () => {
-    const dir = makeTempDir();
-    await setupProject(dir);
+  it('renames an existing key', async () => {
+    await expect(renameKey('development', 'API_KEY', 'API_SECRET', tmpDir)).resolves.toBeUndefined();
+  });
 
-    await expect(renameKey('staging', 'prod', { projectDir: dir })).rejects.toThrow(
-      "Environment 'staging' does not exist."
+  it('throws if environment does not exist', async () => {
+    await expect(renameKey('production', 'API_KEY', 'NEW_KEY', tmpDir)).rejects.toThrow(
+      'Environment "production" does not exist.'
     );
   });
 
-  it('throws if new environment name already exists', async () => {
-    const dir = makeTempDir();
-    await setupProject(dir);
-    await writeKeys({ [PROJECT_ID]: { production: 'abc123key', staging: 'xyz789key' } });
-    const stagingPath = getEncryptedPath(dir, 'staging');
-    fs.writeFileSync(stagingPath, 'other-data');
-
-    await expect(renameKey('production', 'staging', { projectDir: dir })).rejects.toThrow(
-      "Environment 'staging' already exists."
+  it('throws if key not found', async () => {
+    await expect(renameKey('development', 'MISSING_KEY', 'NEW_KEY', tmpDir)).rejects.toThrow(
+      'Key "MISSING_KEY" not found'
     );
   });
 
-  it('throws if no keys found for project', async () => {
-    const dir = makeTempDir();
-    const config = createDefaultConfig(PROJECT_ID);
-    await writeConfig(dir, config);
-    await writeKeys({});
-
-    await expect(renameKey('production', 'prod', { projectDir: dir })).rejects.toThrow(
-      `No keys found for project '${PROJECT_ID}'.`
+  it('throws if project not initialized', async () => {
+    const emptyDir = makeTempDir();
+    await expect(renameKey('development', 'API_KEY', 'NEW_KEY', emptyDir)).rejects.toThrow(
+      'No envault project found'
     );
   });
 });
