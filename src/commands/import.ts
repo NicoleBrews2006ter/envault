@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { readConfig, configExists } from "../config/project";
+import { readConfig, configExists, writeConfig } from "../config/project";
 import { readKeys } from "../crypto/keyfile";
 import { encryptEnvFile, getEncryptedPath } from "../crypto/envfile";
 
@@ -17,7 +17,7 @@ export async function importEnvFile(
 
   if (!configExists(cwd)) {
     throw new Error(
-      "No envault config found. Run \`envault init\` first."
+      "No envault config found. Run `envault init` first."
     );
   }
 
@@ -48,13 +48,17 @@ export async function importEnvFile(
   }
 
   const contents = fs.readFileSync(filePath, "utf-8");
+
+  if (contents.trim().length === 0) {
+    throw new Error(`File is empty: ${filePath}`);
+  }
+
   const encryptedPath = getEncryptedPath(cwd, environment);
 
   await encryptEnvFile(contents, encryptedPath, projectKey);
 
   if (!config.environments.includes(environment)) {
     config.environments.push(environment);
-    const { writeConfig } = await import("../config/project");
     writeConfig(cwd, config);
   }
 
