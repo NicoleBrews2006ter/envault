@@ -43,10 +43,18 @@ import { registerRenameKeyCommand } from './rename-key-command';
 import { registerCatCommand } from './cat-command';
 import { registerFmtCommand } from './fmt-command';
 import { registerStatsCommand } from './stats-command';
+import { registerHeadCommand } from './head-command';
+import { registerTailCommand } from './tail-command';
+import { registerTruncateCommand } from './truncate-command';
+import { registerKeysCommand } from './keys-command';
+import { registerRekeyCommand } from './rekey-command';
 
 const program = new Command();
 
-program.name('envault').description('Manage and encrypt per-project .env files').version('1.0.0');
+program
+  .name('envault')
+  .description('Manage and encrypt per-project .env files with team-sharing support')
+  .version('1.0.0');
 
 registerInitCommand(program);
 registerAddCommand(program);
@@ -92,5 +100,10 @@ registerRenameKeyCommand(program);
 registerCatCommand(program);
 registerFmtCommand(program);
 registerStatsCommand(program);
+registerHeadCommand(program);
+registerTailCommand(program);
+registerTruncateCommand(program);
+registerKeysCommand(program);
+registerRekeyCommand(program);
 
 program.parse(process.argv);
