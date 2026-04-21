@@ -53,6 +53,16 @@ describe('copyEnvironment', () => {
     expect(fs.existsSync(prodEncPath)).toBe(true);
   });
 
+  it('preserves encrypted file contents after copy', async () => {
+    const { key } = await setupProject(tmpDir);
+    await copyEnvironment('staging', 'production', { projectDir: tmpDir });
+
+    const { decryptEnvFile } = await import('../crypto/envfile');
+    const prodEncPath = getEncryptedPath(tmpDir, 'production');
+    const decrypted = await decryptEnvFile(prodEncPath, key);
+    expect(decrypted).toBe(TEST_ENV_CONTENT);
+  });
+
   it('throws if source environment does not exist', async () => {
     await setupProject(tmpDir);
     await expect(
