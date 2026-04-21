@@ -10,6 +10,22 @@ function makeTempDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'envault-pack-test-'));
 }
 
+/**
+ * Creates a temporary directory with a minimal valid project setup,
+ * including a config and an encrypted env file for the given environment.
+ */
+function makeProjectWithEnv(envName: string): { dir: string; encPath: string } {
+  const dir = makeTempDir();
+  const config = createDefaultConfig('myproject');
+  config.environments[envName] = { createdAt: new Date().toISOString() };
+  writeConfig(dir, config);
+
+  const encPath = getEncryptedPath(dir, envName);
+  fs.writeFileSync(encPath, JSON.stringify({ iv: 'abc', data: 'xyz' }));
+
+  return { dir, encPath };
+}
+
 describe('pack', () => {
   it('throws if no config exists', async () => {
     const dir = makeTempDir();
@@ -24,13 +40,7 @@ describe('pack', () => {
   });
 
   it('creates a bundle file with encrypted env contents', async () => {
-    const dir = makeTempDir();
-    const config = createDefaultConfig('myproject');
-    config.environments['production'] = { createdAt: new Date().toISOString() };
-    writeConfig(dir, config);
-
-    const encPath = getEncryptedPath(dir, 'production');
-    fs.writeFileSync(encPath, JSON.stringify({ iv: 'abc', data: 'xyz' }));
+    const { dir } = makeProjectWithEnv('production');
 
     const result = await pack(dir);
     expect(result.environments).toContain('production');
@@ -43,13 +53,7 @@ describe('pack', () => {
   });
 
   it('includes keys when includeKeys is true', async () => {
-    const dir = makeTempDir();
-    const config = createDefaultConfig('myproject');
-    config.environments['staging'] = { createdAt: new Date().toISOString() };
-    writeConfig(dir, config);
-
-    const encPath = getEncryptedPath(dir, 'staging');
-    fs.writeFileSync(encPath, JSON.stringify({ iv: 'def', data: 'uvw' }));
+    const { dir } = makeProjectWithEnv('staging');
     writeKeys(dir, { staging: 'supersecretkey' });
 
     const result = await pack(dir, undefined, true);
@@ -61,13 +65,7 @@ describe('pack', () => {
   });
 
   it('writes bundle to custom output path', async () => {
-    const dir = makeTempDir();
-    const config = createDefaultConfig('myproject');
-    config.environments['dev'] = { createdAt: new Date().toISOString() };
-    writeConfig(dir, config);
-
-    const encPath = getEncryptedPath(dir, 'dev');
-    fs.writeFileSync(encPath, JSON.stringify({ iv: 'ghi', data: 'rst' }));
+    const { dir } = makeProjectWithEnv('dev');
 
     const outPath = path.join(dir, 'my-bundle.json');
     const result = await pack(dir, outPath);
