@@ -36,6 +36,20 @@ export function appendHistory(projectDir: string, entry: Omit<HistoryEntry, 'tim
   fs.writeFileSync(historyPath, JSON.stringify(entries, null, 2));
 }
 
+/**
+ * Clears all history entries for the project, or only entries for a specific environment.
+ */
+export function clearHistory(projectDir: string, environment?: string): void {
+  ensureEnvaultDir(projectDir);
+  const historyPath = getHistoryPath(projectDir);
+  if (environment) {
+    const entries = readHistory(projectDir).filter((e) => e.environment !== environment);
+    fs.writeFileSync(historyPath, JSON.stringify(entries, null, 2));
+  } else {
+    fs.writeFileSync(historyPath, JSON.stringify([], null, 2));
+  }
+}
+
 export interface HistoryOptions {
   environment?: string;
   limit?: number;
