@@ -24,6 +24,12 @@ export function registerPackCommand(program: Command): void {
           ? path.resolve(options.output)
           : undefined;
 
+        if (options.includeKeys) {
+          console.warn(
+            '  ⚠ Warning: --include-keys is set. The bundle will contain sensitive key material.'
+          );
+        }
+
         const result = await pack(projectDir, outputPath, options.includeKeys);
 
         console.log(`✔ Bundle created: ${result.outputPath}`);
